@@ -12,8 +12,6 @@ from tasks.subscription_notify import subscription_notifier
 async def start_bot(bot_token: str):
     bot = Bot(bot_token)
     dp = Dispatcher(storage=MemoryStorage())
-    # dp.message.middleware(SubscriptionMiddleware())
-    # dp.callback_query.middleware(SubscriptionMiddleware())
     
     dp.include_router(admin.router)
     dp.include_router(start.router)
@@ -23,7 +21,6 @@ async def start_bot(bot_token: str):
     dp.include_router(form.router)
     dp.include_router(payment.router)
     # dp.include_router(message.router)
-    
     
     asyncio.create_task(subscription_notifier(bot))
     
