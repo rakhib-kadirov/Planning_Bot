@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from models import Company, Subscription
 from aiogram import Router
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart,CommandObject
 from sqlalchemy import select
 from db import SessionLocal
@@ -85,11 +85,25 @@ async def start_handler(msg: Message, state: FSMContext, command: CommandObject)
                 company_id=company.id
             )
             
-            await msg.answer(
-                "🎁 Your 3-day trial has been activated.\n\n"
-                "Here is your link for clients:\n"
-                f"https://t.me/PlaningChat_bot?start=company_{company.id}"
+            startKeyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Payment", callback_data="menu_payment")],
+                    [InlineKeyboardButton(text="📄 Terms of the offer", callback_data="menu_statistics")],
+                    [InlineKeyboardButton(text="🚀 Connect", callback_data="connect")],
+                ],
+                resize_keyboard=True
             )
+            
+            @router.callback_query(lambda c: c.data == "connect")
+            async def help_menu(call: CallbackQuery):
+                # await call.message.answer("Write to the operator or select a tariff.")
+                # await call.answer()
+                await call.message.answer(
+                    "🎁 Your 3-day trial has been activated.\n\n"
+                    "Here is your link for clients:\n"
+                    f"https://t.me/PlaningChat_bot?start=company_{company.id}", reply_markup=startKeyboard
+                )
+            help_menu()
         else:
             await msg.answer(
                 "Here is your link for clients:\n"
