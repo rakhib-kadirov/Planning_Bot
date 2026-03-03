@@ -23,7 +23,7 @@ async def get_owner_company(user_id: int):
         company = await session.execute(
             select(Company).where(Company.owner_tg_id == user_id)
         )
-        return company.scalar_one_or_none()
+        return company.scalars().all()
 
 
 @router.message(Command("admin"))
@@ -39,39 +39,47 @@ async def admin_menu(msg: Message):
 
 @router.message(Command("subs"))
 async def list_subs(msg: Message, state: FSMContext):
-    # company = await get_owner_company(msg.from_user.id)
     async with SessionLocal() as session:
         result = await session.execute(
             select(Company).where(Company.owner_tg_id != msg.from_user.id)
         )
-        company = result.scalar_one_or_none()
+        companies = result.scalars().all()
 
         # data = await state.get_data()
         # company_id = data.get("company_id")
 
-        if not company:
+        if not companies:
             await msg.answer("У Вас нет компании.")
             return
 
-        result_sub = await session.execute(
-            select(Subscription)
-            .where(Subscription.company_id == company.id)
-        )
-        subs = result_sub.scalars().all()
-        # subs = await get_active_subscriptions(company_id)
-        if not subs:
+        has_subs = False
+        
+        for company in companies:
+            result_sub = await session.execute(
+                select(Subscription)
+                .where(Subscription.company_id == company.id)
+            )
+            subs = result_sub.scalars().all()
+            # subs = await get_active_subscriptions(company_id)
+            if not subs:
+                continue
+                # await msg.answer("Нет активных подписок.")
+                # return
+            has_subs = True
+
+            text = "Активные подписки:\n\n"
+            for sub in subs:
+                text += (
+                    f"Company ID: {sub.company_id}\n"
+                    f"ID: {sub.user_id}\n"
+                    f"Тариф: {sub.tariff}\n"
+                    f"Истекает: {sub.expires_at.date()}\n\n"
+                )
+
+        if not has_subs:
             await msg.answer("Нет активных подписок.")
             return
-
-        text = "Активные подписки:\n\n"
-        for sub in subs:
-            text += (
-                f"Company ID: {sub.company_id}\n"
-                f"ID: {sub.user_id}\n"
-                f"Тариф: {sub.tariff}\n"
-                f"Истекает: {sub.expires_at.date()}\n\n"
-            )
-
+                
         await msg.answer(text)
 
 
@@ -83,18 +91,20 @@ async def user_sub(msg: Message):
         return
 
     user_id = int(args[1])
-    company = await get_owner_company(msg.from_user.id)
-    if not company:
+    companies = await get_owner_company(msg.from_user.id)
+    
+    if not companies:
         await msg.answer("У Вас нет компании.")
         return
 
     async with SessionLocal() as session:
-        result = await session.execute(
-            select(Subscription).where(
-                Subscription.company_id == company.id, Subscription.user_id == user_id
+        for company in companies:
+            result = await session.execute(
+                select(Subscription).where(
+                    Subscription.company_id == company.id, Subscription.user_id == user_id
+                )
             )
-        )
-        sub = result.scalar_one_or_none()
+            sub = result.scalars().all()
 
     if not sub:
         await msg.answer("У пользователя нет подписки.")

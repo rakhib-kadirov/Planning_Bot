@@ -11,7 +11,7 @@ async def get_subscription(user_id: int) -> Subscription | None:
         result = await session.execute(
             select(Subscription).where(Subscription.user_id == user_id)
         )
-        return result.scalar_one_or_none()
+        return result.scalars().all()
 
 
 async def has_active_subscription(user_id: int) -> bool:
@@ -22,7 +22,7 @@ async def has_active_subscription(user_id: int) -> bool:
                 Subscription.expires_at > datetime.utcnow()
             )
         )
-        return result.scalar_one_or_none() is not None
+        return result.scalars().all() is not None
 
 
 async def get_user_tariff(user_id: int) -> str | None:
@@ -74,7 +74,7 @@ async def activate_subscription(user_id: int, tariff: str, days: int = SUBSCRIPT
         result = await session.execute(
             select(Company).where(Company.owner_tg_id == user_id)
         )
-        company = result.scalar_one_or_none()
+        company = result.scalars().all()
 
         print("FOUND COMPANY:", company)
         
@@ -87,7 +87,7 @@ async def activate_subscription(user_id: int, tariff: str, days: int = SUBSCRIPT
                 Subscription.company_id == company.id
             )
         )
-        subscription = result.scalar_one_or_none()
+        subscription = result.scalars().all()
 
         now = datetime.utcnow()
         new_expiry = now + timedelta(days=days)
@@ -116,8 +116,35 @@ async def activate_subscription(user_id: int, tariff: str, days: int = SUBSCRIPT
     await print(f"Activated subscription for user_id: {user_id}, tariff: {tariff}, expires_at: {expires_at}")
         
         
-def activate_company_trial(company):
-    company.trial_expires_at = datetime.utcnow() + timedelta(days=TRIAL_DAYS)
+# def activate_company_trial(company):
+#     company.trial_expires_at = datetime.utcnow() + timedelta(minutes=TRIAL_DAYS)
     
-def company_has_access(company):
-    return company.trial_expires_at and company.trial_expires_at > datetime.utcnow()
+# def company_has_access(company):
+#     return company.trial_expires_at and company.trial_expires_at > datetime.utcnow()
+
+
+async def activate_company_trial(company):
+    # company.trial_expires_at = datetime.utcnow() + timedelta(days=TRIAL_DAYS)
+    
+    async with SessionLocal() as session:
+        trial_sub = Subscription(
+            company_id=company.id,
+            user_id=company.owner_tg_id,
+            tariff="trial",
+            expires_at=datetime.utcnow() + timedelta(days=TRIAL_DAYS)
+        )
+        
+        session.add(trial_sub)
+        await session.commit()
+    
+async def company_has_access(company):
+    # return company.trial_expires_at and company.trial_expires_at > datetime.utcnow()
+    
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(Subscription).where(
+                Subscription.company_id == company.id,
+                Subscription.expires_at > datetime.utcnow()
+            )
+        )
+        return result.scalar_one_or_none() is not None

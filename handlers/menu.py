@@ -18,9 +18,9 @@ def main_menu():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💳 Payment", callback_data="menu_payment")],
-            [InlineKeyboardButton(text="💳 Statistics", callback_data="menu_statistics")],
+            [InlineKeyboardButton(text="📊 Statistics", callback_data="menu_statistics")],
             [InlineKeyboardButton(text="❓ Help", callback_data="menu_help")],
-            [InlineKeyboardButton(text="Contacts", callback_data="menu_contacts")],
+            [InlineKeyboardButton(text="✉️ Contacts", callback_data="menu_contacts")],
         ],
         resize_keyboard=True
     )
@@ -42,7 +42,7 @@ async def menu_cmd(msg: Message):
         result = await session.execute(
             select(Company).where(Company.owner_tg_id == msg.from_user.id)
         )
-        company = result.scalar_one_or_none()
+        company = result.scalars().all()
         
         if not company:
             return # Если пользователь не является владельцем компании, не показываем меню
@@ -100,5 +100,5 @@ async def help_menu(call: CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "menu_contacts")
 async def help_menu(call: CallbackQuery):
-    await call.message.answer("Contacts:\nEmail: rakhibkqadirov@gmail.com")
+    await call.message.answer("Contacts:\nEmail: rakhibkqadirov@gmail.com\nTelegram: @rakhib_kadirov")
     await call.answer()

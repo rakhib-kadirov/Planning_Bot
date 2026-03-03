@@ -10,20 +10,24 @@ async def get_active_subscriptions(company_id: int):
         )
         return result.scalars().all()
 
-async def get_user_subscription(user_id: int):
+async def get_user_subscription(company_id: int):
     async with SessionLocal() as session:
         result = await session.execute(
             select(Subscription).where(
-                Subscription.user_id == user_id
+                # Subscription.user_id == user_id
+                Subscription.company_id == company_id
             )
         )
-        return result.scalar_one_or_none()
+        return result.scalars().all()
 
-async def extend_subscription(user_id: int, days: int):
+async def extend_subscription(company_id: int, days: int):
     async with SessionLocal() as session:
-        sub = await session.scalar(
-            select(Subscription).where(Subscription.user_id == user_id)
+        result = await session.execute(
+            # select(Subscription).where(Subscription.user_id == user_id)
+            select(Subscription).where(Subscription.company_id == company_id)
         )
+        sub = result.scalars().first()
+        
         if not sub:
             return False
         
@@ -32,11 +36,14 @@ async def extend_subscription(user_id: int, days: int):
         await session.commit()
         return True
     
-async def disable_subscription(user_id: int):
+async def disable_subscription(company_id: int):
     async with SessionLocal() as session:
-        sub = await session.scalar(
-            select(Subscription).where(Subscription.user_id == user_id)
+        result = await session.scalar(
+            # select(Subscription).where(Subscription.user_id == user_id)
+            select(Subscription).where(Subscription.company_id == company_id)
         )
+        sub = result.scalars().first()
+        
         if not sub:
             return False
         

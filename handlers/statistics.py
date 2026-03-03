@@ -35,7 +35,7 @@ async def statistics_handler(msg: Message, state: FSMContext):
                 Lead.created_at >= seven_days_ago
             )
         )
-        total_leads = result_total.scalar()
+        total_leads = result_total.scalars().all()
         
         # Повторные клиенты
         result_repeat = await session.execute(

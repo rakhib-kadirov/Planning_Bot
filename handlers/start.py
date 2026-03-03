@@ -1,3 +1,6 @@
+import asyncio
+from datetime import datetime
+from models import Company, Subscription
 from aiogram import Router
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import CommandStart,CommandObject
@@ -72,9 +75,10 @@ async def start_handler(msg: Message, state: FSMContext, command: CommandObject)
                 # owner_tg_id=msg.from_user.id,
                 name=f"Company {msg.from_user.id}"
             )
-            activate_company_trial(company)
             session.add(company)
             await session.commit()
+            await activate_company_trial(company)
+            
             
             await state.update_data(
                 role="owner",
